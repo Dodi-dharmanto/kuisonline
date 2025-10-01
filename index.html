@@ -3,207 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator</title>
-    <!-- Memuat Tailwind CSS untuk styling -->
+    <title>Aplikasi Peta Interaktif</title>
+    
+    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuat Google Fonts untuk tampilan yang lebih baik -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet.js for map functionality -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Leaflet Geosearch for search functionality -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.11.0/dist/geosearch.css" />
+    <script src="https://unpkg.com/leaflet-geosearch@3.11.0/dist/geosearch.umd.js"></script>
+
     <style>
-        /* Gaya kustom untuk melengkapi Tailwind */
+        /* Custom styles to ensure map visibility and search bar aesthetics */
         body {
             font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrolling of the whole page */
         }
-        .calculator-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem; /* Jarak antar tombol */
+        #map {
+            height: 100%;
+            width: 100%;
         }
-        .btn {
-            @apply text-3xl font-medium p-4 rounded-xl shadow-lg transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800;
+        /* Style for the GeoSearch control */
+        .leaflet-control-geosearch form {
+            border: 1px solid #ccc;
+            border-radius: 8px;
         }
-        /* Styling untuk berbagai jenis tombol */
-        .btn-number {
-            @apply bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700;
+        .leaflet-control-geosearch form input {
+            border: none;
+            outline: none;
+            padding: 0 10px;
+            border-radius: 8px 0 0 8px;
         }
-        .btn-operator {
-            @apply bg-yellow-500 text-white hover:bg-yellow-400 active:bg-yellow-600 focus:ring-yellow-500;
+        .leaflet-control-geosearch form .glass {
+             border-radius: 0 8px 8px 0;
+             border-left: 1px solid #ccc;
         }
-        .btn-special {
-            @apply bg-gray-400 text-black hover:bg-gray-300 active:bg-gray-500 focus:ring-gray-400;
-        }
-        .span-two {
-            grid-column: span 2;
+        .leaflet-bar a, .leaflet-bar a:hover {
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
         }
     </style>
 </head>
-<body class="bg-gray-900 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100">
 
-    <div class="w-full max-w-xs sm:max-w-sm mx-auto bg-gray-800 rounded-2xl shadow-2xl p-5">
-        <!-- Layar Tampilan Kalkulator -->
-        <div id="display" class="bg-gray-900 text-white text-6xl text-right rounded-lg mb-5 p-4 overflow-hidden break-words h-24 flex items-end justify-end">
-            <span id="display-value">0</span>
-        </div>
+    <div id="app" class="h-screen w-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-md p-4 z-20 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800">Peta Interaktif</h1>
+            <button id="find-me-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow transition duration-300 ease-in-out flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-geo-alt-fill mr-2" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+                Lokasi Saya
+            </button>
+        </header>
 
-        <!-- Tombol-tombol -->
-        <div class="calculator-grid">
-            <!-- Baris 1 -->
-            <button data-action="clear" class="btn btn-special">AC</button>
-            <button data-action="delete" class="btn btn-special">DEL</button>
-            <button data-operator="%" class="btn btn-special">%</button>
-            <button data-operator="/" class="btn btn-operator">÷</button>
-
-            <!-- Baris 2 -->
-            <button data-number="7" class="btn btn-number">7</button>
-            <button data-number="8" class="btn btn-number">8</button>
-            <button data-number="9" class="btn btn-number">9</button>
-            <button data-operator="*" class="btn btn-operator">×</button>
-
-            <!-- Baris 3 -->
-            <button data-number="4" class="btn btn-number">4</button>
-            <button data-number="5" class="btn btn-number">5</button>
-            <button data-number="6" class="btn btn-number">6</button>
-            <button data-operator="-" class="btn btn-operator">−</button>
-
-            <!-- Baris 4 -->
-            <button data-number="1" class="btn btn-number">1</button>
-            <button data-number="2" class="btn btn-number">2</button>
-            <button data-number="3" class="btn btn-number">3</button>
-            <button data-operator="+" class="btn btn-operator">+</button>
-
-            <!-- Baris 5 -->
-            <button data-number="0" class="btn btn-number span-two">0</button>
-            <button data-number="." class="btn btn-number">.</button>
-            <button data-action="equals" class="btn btn-operator">=</button>
-        </div>
+        <!-- Map Container -->
+        <main class="flex-grow relative">
+            <div id="map"></div>
+        </main>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const display = document.getElementById('display-value');
-            const buttons = document.querySelector('.calculator-grid');
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 1. Initialize Map ---
+            // Set default coordinates to Dramaga, Bogor and zoom level
+            const initialCoords = [-6.557, 106.729];
+            const map = L.map('map').setView(initialCoords, 14);
 
-            let currentInput = '0';
-            let previousInput = null;
-            let operator = null;
-            let shouldResetDisplay = false;
+            // --- 2. Add Tile Layer ---
+            // Using OpenStreetMap as the map provider
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
 
-            // Fungsi untuk memperbarui tampilan
-            const updateDisplay = () => {
-                display.textContent = formatNumber(currentInput);
-            };
-            
-            // Fungsi untuk memformat angka (misalnya, menambahkan pemisah ribuan)
-            const formatNumber = (numberString) => {
-                if (numberString === '' || numberString === '-') return numberString;
-                const [integerPart, decimalPart] = numberString.split('.');
-                const formattedInteger = parseFloat(integerPart).toLocaleString('id-ID', { maximumFractionDigits: 0 });
-                return decimalPart !== undefined ? `${formattedInteger},${decimalPart}` : formattedInteger;
-            };
+            // --- 3. Add Initial Marker ---
+            let userMarker = L.marker(initialCoords).addTo(map)
+                .bindPopup('<b>Lokasi Awal</b><br>Dramaga, Bogor.')
+                .openPopup();
 
-            // Event listener utama untuk semua tombol
-            buttons.addEventListener('click', (event) => {
-                const { target } = event;
-                const { dataset } = target;
+            // --- 4. Add Search Functionality ---
+            const searchProvider = new GeoSearch.OpenStreetMapProvider();
+            const searchControl = new GeoSearch.GeoSearchControl({
+                provider: searchProvider,
+                style: 'bar', // 'bar' or 'button'
+                showMarker: true,
+                showPopup: true,
+                marker: {
+                    icon: new L.Icon.Default(),
+                    draggable: false,
+                },
+                popupFormat: ({ query, result }) => result.label,
+                resultFormat: ({ result }) => result.label,
+                maxMarkers: 1,
+                retainZoomLevel: false,
+                animateZoom: true,
+                autoClose: true,
+                searchLabel: 'Cari alamat...',
+                keepResult: true,
+            });
+            map.addControl(searchControl);
 
-                if (!target.matches('button')) return;
-
-                if (dataset.number) {
-                    handleNumber(dataset.number);
-                } else if (dataset.operator) {
-                    handleOperator(dataset.operator);
-                } else if (dataset.action) {
-                    handleAction(dataset.action);
-                }
-                
-                updateDisplay();
+            // --- 5. Geolocation: Find User's Location ---
+            const findMeBtn = document.getElementById('find-me-btn');
+            findMeBtn.addEventListener('click', () => {
+                map.locate({setView: true, maxZoom: 16});
             });
 
-            const handleNumber = (number) => {
-                if (currentInput === '0' || shouldResetDisplay) {
-                    currentInput = number;
-                    shouldResetDisplay = false;
-                } else {
-                    currentInput += number;
-                }
-
-                if (number === '.' && currentInput.split('.').length > 2) {
-                    currentInput = currentInput.slice(0, -1);
-                }
-            };
-
-            const handleOperator = (nextOperator) => {
-                if (operator && !shouldResetDisplay) {
-                    calculate();
-                    updateDisplay();
-                }
+            function onLocationFound(e) {
+                const radius = e.accuracy / 2;
                 
-                previousInput = currentInput;
-                operator = nextOperator;
-                shouldResetDisplay = true;
-            };
-
-            const handleAction = (action) => {
-                switch (action) {
-                    case 'clear':
-                        resetCalculator();
-                        break;
-                    case 'delete':
-                        deleteLastDigit();
-                        break;
-                    case 'equals':
-                        calculate();
-                        operator = null; // Reset operator setelah perhitungan
-                        break;
+                // Remove previous marker if it exists
+                if (userMarker) {
+                    map.removeLayer(userMarker);
                 }
-            };
-            
-            const calculate = () => {
-                if (!operator || previousInput === null) return;
+
+                userMarker = L.marker(e.latlng).addTo(map)
+                    .bindPopup(`Anda berada dalam radius ${radius.toFixed(0)} meter dari titik ini.`).openPopup();
                 
-                let result = 0;
-                const prev = parseFloat(previousInput.replace(',', '.'));
-                const current = parseFloat(currentInput.replace(',', '.'));
+                L.circle(e.latlng, radius).addTo(map);
+            }
 
-                if (isNaN(prev) || isNaN(current)) return;
+            function onLocationError(e) {
+                alert("Gagal mendapatkan lokasi Anda. Pastikan Anda mengizinkan akses lokasi.\n\n" + e.message);
+            }
 
-                switch (operator) {
-                    case '+': result = prev + current; break;
-                    case '-': result = prev - current; break;
-                    case '*': result = prev * current; break;
-                    case '/': 
-                        if (current === 0) {
-                           alert("Error: Tidak bisa membagi dengan nol.");
-                           resetCalculator();
-                           return;
-                        }
-                        result = prev / current; 
-                        break;
-                    case '%': result = prev % current; break;
-                }
-                
-                currentInput = result.toString().replace('.', ',');
-                shouldResetDisplay = true;
-                previousInput = null;
-            };
-
-            const resetCalculator = () => {
-                currentInput = '0';
-                previousInput = null;
-                operator = null;
-                shouldResetDisplay = false;
-            };
-
-            const deleteLastDigit = () => {
-                if (currentInput.length > 1) {
-                    currentInput = currentInput.slice(0, -1);
-                } else {
-                    currentInput = '0';
-                }
-            };
-
-            updateDisplay();
+            map.on('locationfound', onLocationFound);
+            map.on('locationerror', onLocationError);
         });
     </script>
 </body>
-
 </html>
